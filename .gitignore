@@ -3,6 +3,9 @@ dist/
 .omc/
 .claude/
 
+# 环境变量文件（可能包含密钥）
+.env*
+
 # 本地 helm 配置
 chart/values-local.yaml
 *-local.yaml

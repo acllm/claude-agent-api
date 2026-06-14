@@ -9,6 +9,13 @@
 - **API Key 从环境变量注入** — 不在每次请求中携带，由 Pod 级别的 `ANTHROPIC_API_KEY` 环境变量决定
 - **异步非阻塞** — 提交任务后立即返回 `taskId`，Agent 在后台执行
 
+> ⚠️ **安全警告**
+>
+> 本服务默认使用 `bypassPermissions` 模式运行 Claude Code Agent，**Agent 可执行任意 Shell 命令、读写文件**，且服务本身不提供任何认证机制。**绝不要将此服务直接暴露在公网上。** 部署时请确保：
+> - 通过 K8s NetworkPolicy / VPC 严格限制访问来源
+> - 仅在内网或受信任的网络环境中使用
+> - 如需公网访问，必须在前端添加认证网关（如 OAuth / API Token 校验）
+
 ## API
 
 | 端点 | 方法 | 说明 |

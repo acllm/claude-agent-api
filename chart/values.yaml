@@ -1,5 +1,5 @@
 # Claude Agent API Server — Helm Chart values
-# https://github.com/YOUR_USERNAME/claude-agent-api
+# https://github.com/acllm/claude-agent-api
 
 image:
   repository: claude-agent-api
