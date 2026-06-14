@@ -32,6 +32,40 @@ spec:
         runAsUser: 1000
         fsGroup: 1000
       {{- end }}
+      {{- if .Values.skills.repoUrl }}
+      initContainers:
+        - name: fetch-skills
+          image: alpine/git:latest
+          command:
+            - sh
+            - -c
+            - |
+              set -e
+              mkdir -p /skills
+              git clone --depth=1 --branch {{ .Values.skills.branch }} {{ .Values.skills.repoUrl }} /tmp/repo
+              {{- if .Values.skills.subPath }}
+              {{- range .Values.skills.subPath }}
+              cp -r /tmp/repo/{{ . }} /skills/{{ . }}
+              {{- end }}
+              {{- else }}
+              cp -r /tmp/repo/* /skills/
+              {{- end }}
+              rm -rf /tmp/repo
+              echo "Skills fetched successfully"
+          volumeMounts:
+            - name: skills
+              mountPath: /skills
+            {{- if .Values.skills.gitSecretName }}
+            - name: git-ssh-key
+              mountPath: /root/.ssh
+              readOnly: true
+            {{- end }}
+          {{- if .Values.skills.gitSecretName }}
+          env:
+            - name: GIT_SSH_COMMAND
+              value: "ssh -o StrictHostKeyChecking=no -i /root/.ssh/ssh-privatekey"
+          {{- end }}
+      {{- end }}
       containers:
         - name: claude-agent-api
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -114,6 +148,11 @@ spec:
           volumeMounts:
             - name: workspace
               mountPath: /workspace
+            {{- if .Values.skills.repoUrl }}
+            - name: skills
+              mountPath: /workspace/.claude/skills
+              readOnly: true
+            {{- end }}
             {{- if .Values.runtime.sandbox.enabled }}
             - name: tmp
               mountPath: /tmp
@@ -144,6 +183,16 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        {{- if .Values.skills.repoUrl }}
+        - name: skills
+          emptyDir: {}
+        {{- end }}
+        {{- if .Values.skills.gitSecretName }}
+        - name: git-ssh-key
+          secret:
+            secretName: {{ .Values.skills.gitSecretName }}
+            defaultMode: 0400
+        {{- end }}
         {{- if .Values.runtime.sandbox.enabled }}
         - name: tmp
           emptyDir: {}

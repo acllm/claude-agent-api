@@ -45,6 +45,21 @@ workspace:
     accessMode: ReadWriteOnce
 
 # ========================
+# Skills（Claude Code 原生 Skill 集成）
+# ========================
+skills:
+  # Git 仓库地址，非空即启用 initContainer 拉取
+  repoUrl: ""
+  # Git 分支
+  branch: "main"
+  # 仓库内要挂载的子目录列表，保持子目录结构
+  subPath: []
+    # - db
+    # - devops
+  # 包含 SSH private key 的 K8s Secret 名称
+  gitSecretName: ""
+
+# ========================
 # 运行时控制
 # ========================
 runtime:
