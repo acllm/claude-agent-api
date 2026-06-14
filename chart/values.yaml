@@ -1,0 +1,91 @@
+# Claude Agent API Server — Helm Chart values
+# https://github.com/YOUR_USERNAME/claude-agent-api
+
+image:
+  repository: claude-agent-api
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: false
+  domain: claude-agent.example.com
+  entryPoints:
+    - web
+
+# ========================
+# LLM Provider 配置
+# ========================
+llm:
+  # Anthropic API 兼容端点
+  baseUrl: "https://api.anthropic.com/v1"
+  # API Key — 从环境变量注入 Pod
+  # helm upgrade ... --set llm.apiKey="sk-ant-..."
+  apiKey: ""
+  models:
+    haiku:   { id: "", description: "" }
+    sonnet:  { id: "", description: "" }
+    opus:    { id: "", description: "" }
+  assumeFirstParty: false
+  enableToolSearch: ""
+
+# ========================
+# 工作空间
+# ========================
+workspace:
+  persistence:
+    enabled: true
+    size: 10Gi
+    storageClassName: local-path
+    accessMode: ReadWriteOnce
+
+# ========================
+# 运行时控制
+# ========================
+runtime:
+  defaults:
+    maxTurns: 10
+    maxOutputTokens: 16384
+    maxBudgetUsd: 1.0
+    effortLevel: "medium"
+  sandbox:
+    enabled: false
+    allowedTools:
+      - Read
+      - Write
+      - Edit
+      - Bash
+      - Grep
+      - Glob
+      - WebFetch
+      - LSP
+  session:
+    jsonlTranscript: true
+    transcriptDir: "/workspace/transcripts"
+
+# ========================
+# HPA
+# ========================
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 80
+
+# ========================
+# 额外环境变量
+# ========================
+env: {}
+
+resources:
+  requests: { cpu: "200m", memory: "512Mi" }
+  limits:   { cpu: "2",    memory: "4Gi" }
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

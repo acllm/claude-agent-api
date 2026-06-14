@@ -1,0 +1,22 @@
+{
+  "name": "claude-agent-api",
+  "version": "0.1.0",
+  "description": "Claude Agent API Server — wraps Claude Code Agent as HTTP API for n8n orchestration",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsc --watch & node --watch dist/server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code": "^1.0.0",
+    "@hono/node-server": "^1.13.0",
+    "hono": "^4.7.0",
+    "prom-client": "^15.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

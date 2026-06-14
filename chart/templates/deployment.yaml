@@ -1,0 +1,162 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "claude-agent-api.fullname" . }}
+  labels:
+    {{- include "claude-agent-api.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  {{- if .Values.autoscaling.enabled }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  {{- else }}
+  strategy:
+    type: Recreate
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "claude-agent-api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "claude-agent-api.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- if .Values.runtime.sandbox.enabled }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      {{- end }}
+      containers:
+        - name: claude-agent-api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          {{- if .Values.runtime.sandbox.enabled }}
+          securityContext:
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          {{- end }}
+          env:
+            # --- 服务配置 ---
+            - name: PORT
+              value: {{ .Values.service.port | quote }}
+            # --- LLM Provider ---
+            {{- if .Values.llm.apiKey }}
+            - name: ANTHROPIC_API_KEY
+              value: {{ .Values.llm.apiKey | quote }}
+            {{- end }}
+            - name: ANTHROPIC_BASE_URL
+              value: {{ .Values.llm.baseUrl | quote }}
+            {{- if .Values.llm.models.haiku.id }}
+            - name: ANTHROPIC_DEFAULT_HAIKU_MODEL
+              value: {{ .Values.llm.models.haiku.id | quote }}
+            - name: ANTHROPIC_DEFAULT_HAIKU_MODEL_DESCRIPTION
+              value: {{ .Values.llm.models.haiku.description | quote }}
+            {{- end }}
+            {{- if .Values.llm.models.sonnet.id }}
+            - name: ANTHROPIC_DEFAULT_SONNET_MODEL
+              value: {{ .Values.llm.models.sonnet.id | quote }}
+            - name: ANTHROPIC_DEFAULT_SONNET_MODEL_DESCRIPTION
+              value: {{ .Values.llm.models.sonnet.description | quote }}
+            {{- end }}
+            {{- if .Values.llm.models.opus.id }}
+            - name: ANTHROPIC_DEFAULT_OPUS_MODEL
+              value: {{ .Values.llm.models.opus.id | quote }}
+            - name: ANTHROPIC_DEFAULT_OPUS_MODEL_DESCRIPTION
+              value: {{ .Values.llm.models.opus.description | quote }}
+            {{- end }}
+            {{- if .Values.llm.assumeFirstParty }}
+            - name: CLAUDE_CODE_ASSUME_FIRST_PARTY_BASE_URL
+              value: "1"
+            {{- end }}
+            {{- if .Values.llm.enableToolSearch }}
+            - name: ENABLE_TOOL_SEARCH
+              value: {{ .Values.llm.enableToolSearch | quote }}
+            {{- end }}
+            # --- 运行时控制 ---
+            - name: CLAUDE_CODE_MAX_TURNS
+              value: {{ .Values.runtime.defaults.maxTurns | quote }}
+            - name: CLAUDE_CODE_MAX_OUTPUT_TOKENS
+              value: {{ .Values.runtime.defaults.maxOutputTokens | quote }}
+            - name: CLAUDE_CODE_MAX_BUDGET_USD
+              value: {{ .Values.runtime.defaults.maxBudgetUsd | quote }}
+            - name: CLAUDE_CODE_EFFORT_LEVEL
+              value: {{ .Values.runtime.defaults.effortLevel | quote }}
+            - name: CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC
+              value: "1"
+            {{- if .Values.runtime.sandbox.enabled }}
+            - name: CLAUDE_CODE_SANDBOXED
+              value: "1"
+            {{- end }}
+            {{- if .Values.runtime.session.jsonlTranscript }}
+            - name: CLAUDE_CODE_JSONL_TRANSCRIPT
+              value: {{ .Values.runtime.session.transcriptDir | quote }}
+            {{- end }}
+            {{- if .Values.runtime.sandbox.allowedTools }}
+            - name: CLAUDE_CODE_ALLOWED_TOOLS
+              value: {{ join "," .Values.runtime.sandbox.allowedTools | quote }}
+            {{- end }}
+            # --- 额外环境变量 ---
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: workspace
+              mountPath: /workspace
+            {{- if .Values.runtime.sandbox.enabled }}
+            - name: tmp
+              mountPath: /tmp
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: workspace
+          {{- if .Values.workspace.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "claude-agent-api.fullname" . }}-workspace
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.runtime.sandbox.enabled }}
+        - name: tmp
+          emptyDir: {}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

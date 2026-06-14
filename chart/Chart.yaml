@@ -1,0 +1,6 @@
+apiVersion: v2
+name: claude-agent-api
+description: Claude Agent API Server — 将 Claude Code Agent 包装为 HTTP API，供 n8n 等工作流编排调用
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

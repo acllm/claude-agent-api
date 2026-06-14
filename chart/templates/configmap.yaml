@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "claude-agent-api.fullname" . }}-config
+  labels:
+    {{- include "claude-agent-api.labels" . | nindent 4 }}
+data:
+  {{- if .Values.runtime.sandbox.allowedTools }}
+  allowed-tools: {{ join "," .Values.runtime.sandbox.allowedTools | quote }}
+  {{- end }}
+  max-turns: {{ .Values.runtime.defaults.maxTurns | quote }}
+  effort-level: {{ .Values.runtime.defaults.effortLevel | quote }}

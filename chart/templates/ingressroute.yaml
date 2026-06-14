@@ -1,0 +1,20 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ include "claude-agent-api.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "claude-agent-api.labels" . | nindent 4 }}
+spec:
+  entryPoints:
+    {{- range .Values.ingress.entryPoints }}
+    - {{ . }}
+    {{- end }}
+  routes:
+    - match: Host(`{{ .Values.ingress.domain }}`)
+      kind: Rule
+      services:
+        - name: {{ include "claude-agent-api.fullname" . }}
+          port: {{ .Values.service.port }}
+{{- end }}

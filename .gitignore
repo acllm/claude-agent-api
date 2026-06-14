@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.omc/
+.claude/
+
+# 本地 helm 配置
+chart/values-local.yaml
+*-local.yaml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store

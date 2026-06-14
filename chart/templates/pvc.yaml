@@ -1,0 +1,17 @@
+{{- if .Values.workspace.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "claude-agent-api.fullname" . }}-workspace
+  labels:
+    {{- include "claude-agent-api.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - {{ .Values.workspace.persistence.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.workspace.persistence.size }}
+  {{- if .Values.workspace.persistence.storageClassName }}
+  storageClassName: {{ .Values.workspace.persistence.storageClassName }}
+  {{- end }}
+{{- end }}
